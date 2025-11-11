@@ -13,6 +13,11 @@ const BACKEND_URL = process.env.BACKEND_URL || 'https://backend.khanovbekzod.uz/
 
 const sessions = {}; // login sessiyalari
 
+function formatToUzbekTime(dateString) {
+  return new Date(new Date(dateString).getTime() + 5 * 60 * 60 * 1000)
+    .toLocaleString('uz-UZ');
+}
+
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   sessions[chatId] = { step: 'login' };
@@ -72,12 +77,18 @@ async function sendAllLeads(chatId) {
   try {
     const { data } = await axios.get(BACKEND_URL);
     if (!data.length) return bot.sendMessage(chatId, '⚠️ Hozircha lead yo‘q.');
+
     const text = data
-      .map(
-        (u, i) =>
-          `${i + 1}. 👤 ${u.full_name}\n📞 ${u.phone_number || '-'}\n📋 ${u.type || '-'}\n📍 ${u.address || '-'}`
-      )
+      .map((u, i) => {
+        const time = formatToUzbekTime(u.createdAt);
+        return `${i + 1}. 👤 ${u.full_name}
+📞 ${u.phone_number || '-'}
+📋 ${u.type || '-'}
+📍 ${u.address || '-'}
+⏱ ${time}`;
+      })
       .join('\n\n');
+
     await bot.sendMessage(chatId, `<b>Barcha leadlar:</b>\n\n${text}`, { parse_mode: 'HTML' });
   } catch (e) {
     bot.sendMessage(chatId, '❌ Maʼlumot olishda xato.');
@@ -88,14 +99,17 @@ async function sendDailyStats(chatId) {
   try {
     const { data } = await axios.get(BACKEND_URL);
     if (!data.length) return bot.sendMessage(chatId, '⚠️ Leadlar yo‘q.');
+
     const stats = {};
     data.forEach((u) => {
-      const day = new Date(u.createdAt).toLocaleDateString('uz-UZ');
+      const day = formatToUzbekTime(u.createdAt).split(',')[0];
       stats[day] = (stats[day] || 0) + 1;
     });
+
     const txt = Object.entries(stats)
       .map(([day, count]) => `📅 ${day} — ${count} ta`)
       .join('\n');
+
     await bot.sendMessage(chatId, `<b>Kunlar bo‘yicha leadlar:</b>\n\n${txt}`, { parse_mode: 'HTML' });
   } catch {
     bot.sendMessage(chatId, '❌ Statistikani olishda xato.');
@@ -113,11 +127,17 @@ async function sendExcel(chatId) {
       { header: 'ID', key: 'id', width: 8 },
       { header: 'Ism', key: 'full_name', width: 20 },
       { header: 'Telefon', key: 'phone_number', width: 20 },
-      { header: 'Tur', key: 'type', width: 15 },
+      { header: 'Faoliyat turi', key: 'type', width: 15 },
       { header: 'Manzil', key: 'address', width: 25 },
-      { header: 'Sana', key: 'createdAt', width: 20 },
+      { header: 'Sana (UZ +5)', key: 'createdAt', width: 22 },
     ];
-    data.forEach((u) => sheet.addRow(u));
+
+    data.forEach((u) => {
+      sheet.addRow({
+        ...u,
+        createdAt: formatToUzbekTime(u.createdAt),
+      });
+    });
 
     const file = path.resolve(`leads_${Date.now()}.xlsx`);
     await workbook.xlsx.writeFile(file);

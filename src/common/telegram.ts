@@ -14,14 +14,17 @@ export class TelegramService {
     address?: string;
   }) {
     try {
+      // +5 soat qo‘shamiz (Uzbekistan UTC+5)
+      const localTime = new Date(Date.now() + 5 * 60 * 60 * 1000).toLocaleString('uz-UZ');
+
       const text = `
 🆕 <b>Yangi foydalanuvchi qo‘shildi!</b>
 
 👤 <b>Ism:</b> ${user.full_name || 'Nomaʼlum'}
 📞 <b>Telefon:</b> ${user.phone_number || 'Kiritilmagan'}
-📋 <b>Tur:</b> ${user.type || 'Nomaʼlum'}
+📋 <b>Faoliyat turi:</b> ${user.type || 'Nomaʼlum'}
 📍 <b>Manzil:</b> ${user.address || 'Kiritilmagan'}
-📅 <b>Sana:</b> ${new Date().toLocaleString('uz-UZ')}
+📅 <b>Sana:</b> ${localTime}
 `;
 
       const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
