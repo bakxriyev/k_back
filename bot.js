@@ -127,6 +127,6 @@ async function sendExcel(chatId) {
     await bot.sendDocument(chatId, file);
     fs.unlinkSync(file);
   } catch {
-    bot.sendMessage(chatId, '❌ Excel yaratishda xato.');
+    bot.sendMessage(chatId, '❌ Excel yaratishda xatolik yuz berdi.');
   }
 }
